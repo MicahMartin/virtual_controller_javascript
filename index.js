@@ -1,13 +1,14 @@
-import VirtualController from "./src/util/VirtualController";
+import { VirtualController, readHardwareLayer } from "./src/util/VirtualController";
 
-let frameCount = 0;
 const controller = new VirtualController();
-
 const update = () => {
-  frameCount++;
-
-  let input = 0;
+  // How you choose to read from the hardware layer is up to you
+  const input = readHardwareLayer();
   controller.update(input);
+
+  process.stdout.clearLine();
+  process.stdout.cursorTo(0);
+  process.stdout.write(`${controller.state}`);
 }
 
 const mainLoop = (updateFn) => {
