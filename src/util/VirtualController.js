@@ -63,12 +63,10 @@ export class VirtualController {
   }
 
   wasPressedBuffer(input, strict, pressed, searchLen = 4){
-    let found = false;
     for (let i = 0; i < searchLen; i++) {
-      found = this.wasPressed(input, strict, i, pressed);
-      if (found) return true;
+      if (this.wasPressed(input, strict, i, pressed)) return true;
     }
-    return found;
+    return false;
   }
 
   wasReleased(input, strict = true, index = 0){

@@ -1,3 +1,4 @@
+import { CommandScanner } from "./src/util/CommandScanner";
 import { InputEnum } from "./src/util/Input";
 import { VirtualController, pollKeyboardState } from "./src/util/VirtualController";
 
@@ -26,9 +27,6 @@ const step = ( timeStamp ) => {
 
   const input = pollKeyboardState(keyboardState);
   controller.update(input);
-  if(controller.wasPressedBuffer(InputEnum.LP, false, true, 2)){
-    console.log("yahtzee");
-  }
   draw();
   window.requestAnimationFrame(step);
 }
@@ -38,6 +36,10 @@ const init = () => {
   context = canvas.getContext('2d');
 
   window.requestAnimationFrame(step);
+  const scanner = new CommandScanner();
+  const inputStr = "N, D, DF, F, LP";
+  const tokens = scanner.scan(inputStr);
+  console.log(tokens);
 }
 
 window.onload = init;
