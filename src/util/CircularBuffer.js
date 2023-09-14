@@ -10,9 +10,6 @@ export default class CircularBuffer {
   }
 
   add(item){
-    if(this.writePtr == this.capacity - 1){
-      this.full = true;
-    }
     this.buffer[this.writePtr] = item;
     this.readPtr = this.writePtr;
     this.writePtr = (this.writePtr + 1) % this.capacity;
@@ -25,9 +22,5 @@ export default class CircularBuffer {
 
   asArray(){
     return this.buffer;
-  }
-
-  isFull(){
-    return this.full;
   }
 }
