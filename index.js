@@ -1,27 +1,52 @@
 import { VirtualController, readHardwareLayer } from "./src/util/VirtualController";
 
 const controller = new VirtualController();
-const update = () => {
-  // How you choose to read from the hardware layer is up to you
-  const input = readHardwareLayer();
+const keyboardState = {};
+
+let secondsPassed;
+let oldTimeStamp;
+let fps;
+
+let canvas;
+let context;
+
+const draw = () => {
+  context.fillStyle = 'white';
+  context.fillRect(0, 0, 200, 100);
+  context.font = '25px Arial';
+  context.fillStyle = 'black';
+  context.fillText("FPS: " + fps, 10, 30);
+}
+
+const step = ( timeStamp ) => {
+  secondsPassed = (timeStamp - oldTimeStamp) / 1000;
+  oldTimeStamp = timeStamp;
+  fps = Math.round(1 / secondsPassed);
+
+  const input = readHardwareLayer(keyboardState);
   controller.update(input);
 
-  process.stdout.clearLine();
-  process.stdout.cursorTo(0);
-  process.stdout.write(`${controller.state}`);
+  draw();
+  window.requestAnimationFrame(step);
 }
 
-const mainLoop = (updateFn) => {
-  let lastTime = Date.now();
-  for (;;) {
-    const currentTime = Date.now();
-    const elapsedTime = currentTime - lastTime;
+const init = () => {
+  canvas = document.getElementById('canvas');
+  context = canvas.getContext('2d');
 
-    if (elapsedTime >= 1000 / 60) {
-      if (updateFn()) break;
-      lastTime = currentTime;
-    }
-  }
+  window.requestAnimationFrame(step);
 }
-mainLoop(update);
-console.log(inputBuffer.at(1));
+
+window.onload = init;
+
+window.addEventListener('keydown', event => {
+  if(event.key === 'Space') event.preventDefault();
+
+  keyboardState[event.key] = true;
+});
+
+window.addEventListener('keyup', event => {
+  if(event.key === 'Space') event.preventDefault();
+
+  keyboardState[event.key] = false;
+});
