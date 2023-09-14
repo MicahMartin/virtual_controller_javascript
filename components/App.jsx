@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
-import { VirtualController } from "../util/VirtualController.js";
 
-const App = ({ controllerState }) => {
+const App = ({controller, keyboardState, fps}) => {
   const [count, setCount] = useState(0);
-  const controller = new VirtualController();
 
   return (
     <>
@@ -19,7 +17,7 @@ const App = ({ controllerState }) => {
           count is {count}
         </button>
         <p>
-          controller state is
+          controller state is controller { controller }
         </p>
       </div>
       <p className="read-the-docs">

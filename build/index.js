@@ -23471,14 +23471,218 @@ var require_jsx_dev_runtime = __commonJS((exports, module) => {
   }
 });
 
+// src/util/CircularBuffer.js
+var mod = (n, m) => (n % m + m) % m;
+
+class CircularBuffer {
+  constructor(_capacity) {
+    this.readPtr = 0;
+    this.writePtr = 0;
+    this.size = 0;
+    this.capacity = _capacity;
+    this.buffer = new Array(_capacity).fill(null);
+  }
+  add(item) {
+    this.buffer[this.writePtr] = item;
+    this.readPtr = this.writePtr;
+    this.writePtr = (this.writePtr + 1) % this.capacity;
+    if (this.size <= this.capacity)
+      this.size++;
+  }
+  at(index) {
+    if (index >= this.capacity)
+      throw new Error("index out of bounds");
+    return this.buffer[mod(this.readPtr - index, this.capacity)];
+  }
+  asArray() {
+    return this.buffer;
+  }
+  *[Symbol.iterator]() {
+    let currentIndex = 0;
+    while (currentIndex < this.size) {
+      yield this.at(currentIndex);
+      currentIndex++;
+    }
+  }
+}
+
+// src/util/Input.js
+var InputEnum = {
+  NOINPUT: 0,
+  RIGHT: 1,
+  LEFT: 2,
+  UP: 4,
+  DOWN: 8,
+  LP: 16,
+  MP: 32,
+  HP: 64,
+  AP: 128,
+  LK: 256,
+  MK: 512,
+  HK: 1024,
+  AK: 2048,
+  START: 4096,
+  SELECT: 8192,
+  MISC1: 16384,
+  MISC2: 32768,
+  DOWNLEFT: 8 | 2,
+  DOWNRIGHT: 8 | 1,
+  UPLEFT: 4 | 2,
+  UPRIGHT: 4 | 1
+};
+var InputEnumString = {
+  [InputEnum.NOINPUT]: "NOINPUT",
+  [InputEnum.RIGHT]: "RIGHT",
+  [InputEnum.LEFT]: "LEFT",
+  [InputEnum.UP]: "UP",
+  [InputEnum.DOWN]: "DOWN",
+  [InputEnum.LP]: "LP",
+  [InputEnum.MP]: "MP",
+  [InputEnum.HP]: "HP",
+  [InputEnum.AP]: "AP",
+  [InputEnum.LK]: "LK",
+  [InputEnum.MK]: "MK",
+  [InputEnum.HK]: "HK",
+  [InputEnum.AK]: "AK",
+  [InputEnum.START]: "START",
+  [InputEnum.SELECT]: "SELECT",
+  [InputEnum.MISC1]: "MISC1",
+  [InputEnum.MISC2]: "MISC2",
+  [InputEnum.DOWNLEFT]: "DOWNLEFT",
+  [InputEnum.DOWNRIGHT]: "DOWNRIGHT",
+  [InputEnum.UPLEFT]: "UPLEFT",
+  [InputEnum.UPRIGHT]: "UPRIGHT"
+};
+var createInputEvent = (inputBit, pressed) => ({
+  inputBit,
+  pressed,
+  key: InputEnumString[inputBit]
+});
+
+class InputFrame {
+  constructor() {
+    this.size = 0;
+    this.buffer = new Array(16);
+  }
+  addEvent(event) {
+    this.buffer[this.size] = event;
+    this.size++;
+  }
+  *[Symbol.iterator]() {
+    let currentIndex = 0;
+    while (currentIndex < this.size) {
+      yield this.buffer[currentIndex];
+      currentIndex++;
+    }
+  }
+}
+
+// src/util/VirtualController.js
+class VirtualController {
+  constructor() {
+    this.buffer = new CircularBuffer(60);
+    this.currentState = 0;
+    this.currentStickState = 0;
+    this.prevState = 0;
+    this.prevStickState = 0;
+  }
+  update(input) {
+    const currentFrame = new InputFrame;
+    this.prevState = this.currentState;
+    this.prevStickState = this.currentState & 15;
+    this.currentState = input;
+    this.currentStickState = input & 15;
+    if (this.prevStickState != this.currentStickState) {
+      if (this.prevStickState == 0) {
+        currentFrame.addEvent(createInputEvent(InputEnum.NOINPUT, false));
+      } else {
+        currentFrame.addEvent(createInputEvent(this.prevStickState, false));
+      }
+      if (this.currentStickState == 0) {
+        currentFrame.addEvent(createInputEvent(InputEnum.NOINPUT, true));
+      } else {
+        currentFrame.addEvent(createInputEvent(this.currentStickState, true));
+      }
+    }
+    for (let i = 4;i < 10; i++) {
+      let mask = 0;
+      mask |= 1 << i;
+      if (this.currentState & 1 << i && !(this.prevState & 1 << i)) {
+        currentFrame.addEvent(createInputEvent(mask, true));
+      } else if (!(this.currentState & 1 << i) && this.prevState & 1 << i) {
+        currentFrame.addEvent(createInputEvent(mask, false));
+      }
+    }
+    this.buffer.add(currentFrame);
+  }
+  wasPressed(input, strict, index, pressed) {
+    if (index >= this.buffer.size)
+      return false;
+    const inputFrame = this.buffer.at(index);
+    for (const event of inputFrame) {
+      if (pressed && event.pressed || !pressed && !event.pressed) {
+        if (input <= 10 && strict)
+          return input === (event.inputBit & 15);
+        return event.inputBit & input;
+      }
+    }
+    return false;
+  }
+  wasPressedBuffer(input, strict, pressed, searchLen = 4) {
+    for (let i = 0;i < searchLen; i++) {
+      if (this.wasPressed(input, strict, i, pressed))
+        return true;
+    }
+    return false;
+  }
+  wasReleased(input, strict = true, index = 0) {
+    return this.wasPressed(input, strict, index, false);
+  }
+  isPressed(input, strict = true) {
+    if (input < 16 && strict)
+      return input === (this.currentState & 15);
+    return this.currentState & input;
+  }
+}
+var pollKeyboardState = (keyboardState) => {
+  let input = InputEnum.NOINPUT;
+  let inputAxisX = 0;
+  let inputAxisY = 0;
+  if (keyboardState["r"])
+    inputAxisX++;
+  if (keyboardState["w"])
+    inputAxisX--;
+  if (keyboardState[" "])
+    inputAxisY++;
+  if (keyboardState["e"])
+    inputAxisY--;
+  if (keyboardState["u"])
+    input |= InputEnum.LP;
+  if (keyboardState["i"])
+    input |= InputEnum.LK;
+  if (keyboardState["o"])
+    input |= InputEnum.MP;
+  if (keyboardState["p"])
+    input |= InputEnum.MK;
+  if (inputAxisX == 1)
+    input |= InputEnum.RIGHT;
+  if (inputAxisX == -1)
+    input |= InputEnum.LEFT;
+  if (inputAxisY == 1)
+    input |= InputEnum.UP;
+  if (inputAxisY == -1)
+    input |= InputEnum.DOWN;
+  return input;
+};
+
 // index.js
 var import_react2 = __toESM(require_react(), 1);
 var client = __toESM(require_client(), 1);
 
-// components/App.js
+// components/App.jsx
 var import_react = __toESM(require_react(), 1);
 var jsx_dev_runtime = __toESM(require_jsx_dev_runtime(), 1);
-var App = ({ controllerState }) => {
+var App = ({ controller, keyboardState, fps }) => {
   const [count, setCount] = import_react.useState(0);
   return jsx_dev_runtime.jsxDEV(jsx_dev_runtime.Fragment, {
     children: [
@@ -23508,8 +23712,11 @@ var App = ({ controllerState }) => {
             ]
           }, undefined, true, undefined, this),
           jsx_dev_runtime.jsxDEV("p", {
-            children: "controller state is"
-          }, undefined, false, undefined, this)
+            children: [
+              "controller state is controller ",
+              controller
+            ]
+          }, undefined, true, undefined, this)
         ]
       }, undefined, true, undefined, this),
       jsx_dev_runtime.jsxDEV("p", {
@@ -23523,6 +23730,36 @@ var App_default = App;
 
 // index.js
 var jsx_dev_runtime2 = __toESM(require_jsx_dev_runtime(), 1);
+var ControllerWrapper = () => {
+  const keyboardState = {};
+  const virtualController = new VirtualController;
+  const [controller, setController] = import_react2.useState(0);
+  import_react2.useEffect(() => {
+    window.addEventListener("keydown", (event) => {
+      if (event.key === " ")
+        event.preventDefault();
+      keyboardState[event.key] = true;
+    });
+    window.addEventListener("keyup", (event) => {
+      if (event.key === " ")
+        event.preventDefault();
+      keyboardState[event.key] = false;
+    });
+    const step = () => {
+      const input = pollKeyboardState(keyboardState);
+      virtualController.update(input);
+      setController(() => virtualController.currentState);
+      window.requestAnimationFrame(step);
+    };
+    const init = () => window.requestAnimationFrame(step);
+    window.onload = init;
+  }, []);
+  return jsx_dev_runtime2.jsxDEV("div", {
+    children: jsx_dev_runtime2.jsxDEV(App_default, {
+      controller
+    }, undefined, false, undefined, this)
+  }, undefined, false, undefined, this);
+};
 client.default.createRoot(document.getElementById("root")).render(jsx_dev_runtime2.jsxDEV(import_react2.default.StrictMode, {
-  children: jsx_dev_runtime2.jsxDEV(App_default, {}, undefined, false, undefined, this)
+  children: jsx_dev_runtime2.jsxDEV(ControllerWrapper, {}, undefined, false, undefined, this)
 }, undefined, false, undefined, this));

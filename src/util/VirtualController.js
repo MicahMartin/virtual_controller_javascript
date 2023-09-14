@@ -4,7 +4,6 @@ import { InputEnum, InputFrame, createInputEvent} from "./Input";
 export class VirtualController {
   constructor(){
     this.buffer = new CircularBuffer(60);
-    // represent state of each button on virtual controller with bitflags
     this.currentState = 0;
     this.currentStickState = 0;
 

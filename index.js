@@ -1,50 +1,48 @@
-import { CommandScanner } from "./src/util/CommandScanner";
-import { VirtualController, pollKeyboardState } from "./src/util/VirtualController";
+import { VirtualController, pollKeyboardState } from './src/util/VirtualController';
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './components/App.jsx';
 
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './components/App.js'
+const ControllerWrapper = () => {
+  const keyboardState = {};
+  const virtualController = new VirtualController();
 
+  const [controller, setController] = useState(0);
 
-const controller = new VirtualController();
-const keyboardState = {};
+  useEffect(() => {
+    window.addEventListener('keydown', (event) => {
+      if (event.key === ' ') event.preventDefault();
+      keyboardState[event.key] = true;
+    });
 
-let secondsPassed;
-let oldTimeStamp;
-let fps;
+    window.addEventListener('keyup', (event) => {
+      if (event.key === ' ') event.preventDefault();
+      keyboardState[event.key] = false;
+    });
 
-const step = ( timeStamp ) => {
-  secondsPassed = (timeStamp - oldTimeStamp) / 1000;
-  oldTimeStamp = timeStamp;
-  // fps = Math.round(1 / secondsPassed);
+    const step = () => {
+      const input = pollKeyboardState(keyboardState);
 
-  const input = pollKeyboardState(keyboardState);
-  controller.update(input);
-  window.requestAnimationFrame(step);
-}
+      virtualController.update(input);
+      setController(() => virtualController.currentState);
 
-const init = () => {
-  window.requestAnimationFrame(step);
-  // const scanner = new CommandScanner();
-  // const inputStr = "N, D, DF, F, LP";
-  // const tokens = scanner.scan(inputStr);
-  // console.log(tokens);
-}
+      window.requestAnimationFrame(step);
+    };
 
-window.onload = init;
+    const init = () => window.requestAnimationFrame(step);
 
-window.addEventListener('keydown', event => {
-  if(event.key === ' ') event.preventDefault();
-  keyboardState[event.key] = true;
-});
+    window.onload = init;
+  }, []);
 
-window.addEventListener('keyup', event => {
-  if(event.key === ' ') event.preventDefault();
-  keyboardState[event.key] = false;
-});
+  return (
+    <div>
+      <App controller={controller} />
+    </div>
+  );
+};
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App controllerState={controller.currentState} />
+    <ControllerWrapper />
   </React.StrictMode>,
 )
