@@ -48,12 +48,19 @@ var InputEnum = {
   UPLEFT: 4 | 2,
   UPRIGHT: 4 | 1
 };
+var createInputEvent = (inputBit = -1, pressed = true, valid = true) => ({
+  inputBit,
+  pressed,
+  valid
+});
+
 class InputFrame {
   constructor() {
     this.size = 0;
     this.buffer = new Array(16);
   }
   addEvent(event) {
+    console.log(event);
     this.buffer.push(event);
     this.size++;
   }
@@ -64,12 +71,38 @@ class VirtualController {
   constructor() {
     this.buffer = new CircularBuffer(10);
     this.currentState = 0;
+    this.currentStickState = 0;
     this.prevState = 0;
+    this.prevStickState = 0;
   }
   update(input) {
     const currentFrame = new InputFrame;
     this.prevState = this.currentState;
+    this.prevStickState = this.currentState & 15;
     this.currentState = input;
+    this.currentStickState = input & 15;
+    if (this.prevStickState != this.currentStickState) {
+      if (this.prevStickState == 0) {
+        currentFrame.addEvent(createInputEvent(InputEnum.NOINPUT, false));
+      } else {
+        currentFrame.addEvent(createInputEvent(this.prevStickState, false));
+      }
+      if (this.currentStickState == 0) {
+        currentFrame.addEvent(createInputEvent(InputEnum.NOINPUT, true));
+      } else {
+        currentFrame.addEvent(createInputEvent(this.currentStickState, true));
+      }
+    }
+    for (let i = 4;i < 10; ++i) {
+      let mask = 0;
+      mask |= 1 << i;
+      if (this.currentState & 1 << i && !(this.prevState & 1 << i)) {
+        currentFrame.addEvent(createInputEvent(mask, true));
+      } else if (!(this.currentState & 1 << i) && this.prevState & 1 << i) {
+        currentFrame.addEvent(createInputEvent(mask, false));
+      }
+    }
+    this.buffer.add(currentFrame);
   }
 }
 var readHardwareLayer = (keyboardState) => {
@@ -82,7 +115,7 @@ var readHardwareLayer = (keyboardState) => {
   if (keyboardState["w"]) {
     inputAxisX--;
   }
-  if (keyboardState["Space"]) {
+  if (keyboardState[" "]) {
     inputAxisY++;
   }
   if (keyboardState["e"]) {
@@ -124,7 +157,7 @@ var draw = () => {
   context.fillRect(0, 0, 200, 100);
   context.font = "25px Arial";
   context.fillStyle = "black";
-  context.fillText("FPS: " + fps, 10, 30);
+  context.fillText("currentState: " + controller.currentState, 10, 30);
 };
 var step = (timeStamp) => {
   secondsPassed = (timeStamp - oldTimeStamp) / 1000;
@@ -142,12 +175,12 @@ var init = () => {
 };
 window.onload = init;
 window.addEventListener("keydown", (event) => {
-  if (event.key === "Space")
+  if (event.key === " ")
     event.preventDefault();
   keyboardState[event.key] = true;
 });
 window.addEventListener("keyup", (event) => {
-  if (event.key === "Space")
+  if (event.key === " ")
     event.preventDefault();
   keyboardState[event.key] = false;
 });

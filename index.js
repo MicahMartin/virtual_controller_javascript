@@ -15,7 +15,7 @@ const draw = () => {
   context.fillRect(0, 0, 200, 100);
   context.font = '25px Arial';
   context.fillStyle = 'black';
-  context.fillText("FPS: " + fps, 10, 30);
+  context.fillText("currentState: " + controller.currentState, 10, 30);
 }
 
 const step = ( timeStamp ) => {
@@ -40,13 +40,11 @@ const init = () => {
 window.onload = init;
 
 window.addEventListener('keydown', event => {
-  if(event.key === 'Space') event.preventDefault();
-
+  if(event.key === ' ') event.preventDefault();
   keyboardState[event.key] = true;
 });
 
 window.addEventListener('keyup', event => {
-  if(event.key === 'Space') event.preventDefault();
-
+  if(event.key === ' ') event.preventDefault();
   keyboardState[event.key] = false;
 });

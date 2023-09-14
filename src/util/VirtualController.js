@@ -1,21 +1,51 @@
 import CircularBuffer from "./CircularBuffer"
-import { InputEnum, InputFrame } from "./Input";
+import { InputEnum, InputFrame, createInputEvent} from "./Input";
 
 export class VirtualController {
   constructor(){
     this.buffer = new CircularBuffer(10);
     // represent state of each button on virtual controller with bitflags
     this.currentState = 0;
+    this.currentStickState = 0;
+
     this.prevState = 0;
+    this.prevStickState = 0;
   }
 
   update(input){
     const currentFrame = new InputFrame();
 
     this.prevState = this.currentState;
-    this.currentState = input;
+    this.prevStickState = this.currentState & 0x0F;
 
-    // this.buffer.add(input);
+    this.currentState = input;
+    this.currentStickState = input & 0x0F;
+
+    if (this.prevStickState != this.currentStickState) {
+      if (this.prevStickState == 0) {
+        currentFrame.addEvent(createInputEvent(InputEnum.NOINPUT, false));
+      } else {
+        currentFrame.addEvent(createInputEvent(this.prevStickState, false));
+      }
+
+      if (this.currentStickState == 0) {
+        currentFrame.addEvent(createInputEvent(InputEnum.NOINPUT, true));
+      } else {
+        currentFrame.addEvent(createInputEvent(this.currentStickState, true));
+      }
+    }
+
+    for (let i = 4; i < 10; ++i) {
+      let mask = 0;
+      mask |= (1 << i);
+      if (this.currentState & (1 << i) && !(this.prevState & (1 << i))) {
+        currentFrame.addEvent(createInputEvent(mask, true));
+      } else if (!(this.currentState & (1 << i)) && (this.prevState & (1 << i))) {
+        currentFrame.addEvent(createInputEvent(mask, false));
+      }
+    }
+
+    this.buffer.add(currentFrame);
   }
 }
 
@@ -31,7 +61,7 @@ export const readHardwareLayer = (keyboardState) => {
   if(keyboardState["w"]){
     inputAxisX--;
   }
-  if(keyboardState["Space"]){
+  if(keyboardState[" "]){
     inputAxisY++;
   }
   if(keyboardState["e"]){

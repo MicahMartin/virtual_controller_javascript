@@ -27,7 +27,7 @@ export const InputEnum = {
   UPRIGHT : (0x4|0x1),
 };
 
-export const InputEvent = (inputBit = -1, pressed = true, valid = true) => ({
+export const createInputEvent = (inputBit = -1, pressed = true, valid = true) => ({
   inputBit,
   pressed,
   valid,
@@ -40,6 +40,7 @@ export class InputFrame {
   }
 
   addEvent(event){
+    console.log(event);
     this.buffer.push(event);
     this.size++;
   }
