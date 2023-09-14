@@ -46,6 +46,7 @@ export class VirtualController {
       }
     }
 
+    // console.log(this.currentState);
     this.buffer.add(currentFrame);
   }
   

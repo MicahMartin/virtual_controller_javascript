@@ -1,4 +1,4 @@
-// Token ENum
+// Token Enum
 const TokenEnum = {
   NEUTRAL: 0,
   FORWARD: 1,
@@ -69,7 +69,6 @@ export class CommandScanner {
 
       if (this.isAlpha(c)){
         while(this.isAlpha(this.peek())){
-          console.log("is alpha");
           this.advance();
         }
 
