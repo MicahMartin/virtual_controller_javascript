@@ -4,7 +4,7 @@ export default class CircularBuffer {
   constructor(_capacity){
     this.readPtr = 0;
     this.writePtr = 0;
-    this.full = false;
+    this.size = 0;
     this.capacity = _capacity;
     this.buffer = new Array(_capacity).fill(null);
   }
@@ -13,6 +13,8 @@ export default class CircularBuffer {
     this.buffer[this.writePtr] = item;
     this.readPtr = this.writePtr;
     this.writePtr = (this.writePtr + 1) % this.capacity;
+
+    if(this.size <= this.capacity) this.size++;
   }
 
   at(index){
@@ -22,5 +24,13 @@ export default class CircularBuffer {
 
   asArray(){
     return this.buffer;
+  }
+
+  *[Symbol.iterator]() {
+    let currentIndex = 0;
+    while (currentIndex < this.size) {
+      yield this.at(currentIndex);
+      currentIndex++;
+    }
   }
 }

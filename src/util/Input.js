@@ -27,10 +27,39 @@ export const InputEnum = {
   UPRIGHT : (0x4|0x1),
 };
 
-export const createInputEvent = (inputBit = -1, pressed = true, valid = true) => ({
+const InputEnumString = {
+  [InputEnum.NOINPUT] : "NOINPUT",
+
+  [InputEnum.RIGHT] : "RIGHT",
+  [InputEnum.LEFT] : "LEFT",
+  [InputEnum.UP] : "UP",
+  [InputEnum.DOWN] : "DOWN",
+
+  [InputEnum.LP]  : "LP",
+  [InputEnum.MP] : "MP",
+  [InputEnum.HP] : "HP",
+  [InputEnum.AP] : "AP",
+
+  [InputEnum.LK]  : "LK",
+  [InputEnum.MK] : "MK",
+  [InputEnum.HK] : "HK",
+  [InputEnum.AK] : "AK",
+
+  [InputEnum.START] : "START",
+  [InputEnum.SELECT] : "SELECT",
+  [InputEnum.MISC1] : "MISC1",
+  [InputEnum.MISC2] : "MISC2",
+
+  [InputEnum.DOWNLEFT] : "DOWNLEFT",
+  [InputEnum.DOWNRIGHT] : "DOWNRIGHT",
+  [InputEnum.UPLEFT] : "UPLEFT",
+  [InputEnum.UPRIGHT] : "UPRIGHT",
+};
+
+export const createInputEvent = (inputBit, pressed) => ({
   inputBit,
   pressed,
-  valid,
+  key: InputEnumString[inputBit]
 });
 
 export class InputFrame {
@@ -40,8 +69,15 @@ export class InputFrame {
   }
 
   addEvent(event){
-    console.log(event);
-    this.buffer.push(event);
+    this.buffer[this.size] = event;
     this.size++;
   }
-};
+
+  *[Symbol.iterator]() {
+    let currentIndex = 0;
+    while (currentIndex < this.size) {
+      yield this.buffer[currentIndex];
+      currentIndex++;
+    }
+  }
+}

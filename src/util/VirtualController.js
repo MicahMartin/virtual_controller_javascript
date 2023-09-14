@@ -3,7 +3,7 @@ import { InputEnum, InputFrame, createInputEvent} from "./Input";
 
 export class VirtualController {
   constructor(){
-    this.buffer = new CircularBuffer(10);
+    this.buffer = new CircularBuffer(60);
     // represent state of each button on virtual controller with bitflags
     this.currentState = 0;
     this.currentStickState = 0;
@@ -35,9 +35,10 @@ export class VirtualController {
       }
     }
 
-    for (let i = 4; i < 10; ++i) {
+    for (let i = 4; i < 10; i++) {
       let mask = 0;
       mask |= (1 << i);
+
       if (this.currentState & (1 << i) && !(this.prevState & (1 << i))) {
         currentFrame.addEvent(createInputEvent(mask, true));
       } else if (!(this.currentState & (1 << i)) && (this.prevState & (1 << i))) {
@@ -47,39 +48,55 @@ export class VirtualController {
 
     this.buffer.add(currentFrame);
   }
+  
+  wasPressed(input, strict, index, pressed){
+    if (index >= this.buffer.size) return false;
+    const inputFrame = this.buffer.at(index);
+
+    for (const event of inputFrame) {
+      if (pressed && event.pressed || !pressed && !event.pressed) {
+        if (input <= 10 && strict) return input === (event.inputBit & 0x0F);
+        return event.inputBit & input;
+      }
+    }
+    return false;
+  }
+
+  wasPressedBuffer(input, strict, pressed, searchLen = 4){
+    let found = false;
+    for (let i = 0; i < searchLen; i++) {
+      found = this.wasPressed(input, strict, i, pressed);
+      if (found) return true;
+    }
+    return found;
+  }
+
+  wasReleased(input, strict = true, index = 0){
+    return this.wasPressed(input, strict, index, false);
+  }
+
+  isPressed(input, strict = true){
+    if (input < 16 && strict) return input === (this.currentState & 0x0F);
+
+    return this.currentState & input;
+  }
 }
 
-export const readHardwareLayer = (keyboardState) => {
+export const pollKeyboardState = (keyboardState) => {
   let input = InputEnum.NOINPUT;
 
   let inputAxisX = 0;
   let inputAxisY = 0;
   
-  if(keyboardState["r"]){
-    inputAxisX++;
-  }
-  if(keyboardState["w"]){
-    inputAxisX--;
-  }
-  if(keyboardState[" "]){
-    inputAxisY++;
-  }
-  if(keyboardState["e"]){
-    inputAxisY--;
-  }
+  if(keyboardState["r"]) inputAxisX++; 
+  if(keyboardState["w"]) inputAxisX--; 
+  if(keyboardState[" "]) inputAxisY++; 
+  if(keyboardState["e"]) inputAxisY--;
 
-  if(keyboardState["u"]){
-    input |= InputEnum.LP;
-  }
-  if(keyboardState["i"]){
-    input |= InputEnum.LK;
-  }
-  if(keyboardState["o"]){
-    input |= InputEnum.MP;
-  }
-  if(keyboardState["p"]){
-    input |= InputEnum.MK;
-  }
+  if(keyboardState["u"]) input |= InputEnum.LP; 
+  if(keyboardState["i"]) input |= InputEnum.LK; 
+  if(keyboardState["o"]) input |= InputEnum.MP; 
+  if(keyboardState["p"]) input |= InputEnum.MK; 
 
   if(inputAxisX == 1) input |= InputEnum.RIGHT;
   if(inputAxisX == -1) input |= InputEnum.LEFT; 

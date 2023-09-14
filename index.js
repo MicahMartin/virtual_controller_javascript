@@ -1,4 +1,5 @@
-import { VirtualController, readHardwareLayer } from "./src/util/VirtualController";
+import { InputEnum } from "./src/util/Input";
+import { VirtualController, pollKeyboardState } from "./src/util/VirtualController";
 
 const controller = new VirtualController();
 const keyboardState = {};
@@ -23,9 +24,11 @@ const step = ( timeStamp ) => {
   oldTimeStamp = timeStamp;
   fps = Math.round(1 / secondsPassed);
 
-  const input = readHardwareLayer(keyboardState);
+  const input = pollKeyboardState(keyboardState);
   controller.update(input);
-
+  if(controller.wasPressedBuffer(InputEnum.LP, false, true, 2)){
+    console.log("yahtzee");
+  }
   draw();
   window.requestAnimationFrame(step);
 }

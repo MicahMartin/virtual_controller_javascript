@@ -1,29 +1,3 @@
-// src/util/CircularBuffer.js
-var mod = (n, m) => (n % m + m) % m;
-
-class CircularBuffer {
-  constructor(_capacity) {
-    this.readPtr = 0;
-    this.writePtr = 0;
-    this.full = false;
-    this.capacity = _capacity;
-    this.buffer = new Array(_capacity).fill(null);
-  }
-  add(item) {
-    this.buffer[this.writePtr] = item;
-    this.readPtr = this.writePtr;
-    this.writePtr = (this.writePtr + 1) % this.capacity;
-  }
-  at(index) {
-    if (index >= this.capacity)
-      throw new Error("index out of bounds");
-    return this.buffer[mod(this.readPtr - index, this.capacity)];
-  }
-  asArray() {
-    return this.buffer;
-  }
-}
-
 // src/util/Input.js
 var InputEnum = {
   NOINPUT: 0,
@@ -48,10 +22,33 @@ var InputEnum = {
   UPLEFT: 4 | 2,
   UPRIGHT: 4 | 1
 };
-var createInputEvent = (inputBit = -1, pressed = true, valid = true) => ({
+var InputEnumString = {
+  [InputEnum.NOINPUT]: "NOINPUT",
+  [InputEnum.RIGHT]: "RIGHT",
+  [InputEnum.LEFT]: "LEFT",
+  [InputEnum.UP]: "UP",
+  [InputEnum.DOWN]: "DOWN",
+  [InputEnum.LP]: "LP",
+  [InputEnum.MP]: "MP",
+  [InputEnum.HP]: "HP",
+  [InputEnum.AP]: "AP",
+  [InputEnum.LK]: "LK",
+  [InputEnum.MK]: "MK",
+  [InputEnum.HK]: "HK",
+  [InputEnum.AK]: "AK",
+  [InputEnum.START]: "START",
+  [InputEnum.SELECT]: "SELECT",
+  [InputEnum.MISC1]: "MISC1",
+  [InputEnum.MISC2]: "MISC2",
+  [InputEnum.DOWNLEFT]: "DOWNLEFT",
+  [InputEnum.DOWNRIGHT]: "DOWNRIGHT",
+  [InputEnum.UPLEFT]: "UPLEFT",
+  [InputEnum.UPRIGHT]: "UPRIGHT"
+};
+var createInputEvent = (inputBit, pressed) => ({
   inputBit,
   pressed,
-  valid
+  key: InputEnumString[inputBit]
 });
 
 class InputFrame {
@@ -60,16 +57,57 @@ class InputFrame {
     this.buffer = new Array(16);
   }
   addEvent(event) {
-    console.log(event);
-    this.buffer.push(event);
+    this.buffer[this.size] = event;
     this.size++;
+  }
+  *[Symbol.iterator]() {
+    let currentIndex = 0;
+    while (currentIndex < this.size) {
+      yield this.buffer[currentIndex];
+      currentIndex++;
+    }
+  }
+}
+
+// src/util/CircularBuffer.js
+var mod = (n, m) => (n % m + m) % m;
+
+class CircularBuffer {
+  constructor(_capacity) {
+    this.readPtr = 0;
+    this.writePtr = 0;
+    this.size = 0;
+    this.capacity = _capacity;
+    this.buffer = new Array(_capacity).fill(null);
+  }
+  add(item) {
+    this.buffer[this.writePtr] = item;
+    this.readPtr = this.writePtr;
+    this.writePtr = (this.writePtr + 1) % this.capacity;
+    if (this.size <= this.capacity)
+      this.size++;
+  }
+  at(index) {
+    if (index >= this.capacity)
+      throw new Error("index out of bounds");
+    return this.buffer[mod(this.readPtr - index, this.capacity)];
+  }
+  asArray() {
+    return this.buffer;
+  }
+  *[Symbol.iterator]() {
+    let currentIndex = 0;
+    while (currentIndex < this.size) {
+      yield this.at(currentIndex);
+      currentIndex++;
+    }
   }
 }
 
 // src/util/VirtualController.js
 class VirtualController {
   constructor() {
-    this.buffer = new CircularBuffer(10);
+    this.buffer = new CircularBuffer(60);
     this.currentState = 0;
     this.currentStickState = 0;
     this.prevState = 0;
@@ -93,7 +131,7 @@ class VirtualController {
         currentFrame.addEvent(createInputEvent(this.currentStickState, true));
       }
     }
-    for (let i = 4;i < 10; ++i) {
+    for (let i = 4;i < 10; i++) {
       let mask = 0;
       mask |= 1 << i;
       if (this.currentState & 1 << i && !(this.prevState & 1 << i)) {
@@ -104,35 +142,57 @@ class VirtualController {
     }
     this.buffer.add(currentFrame);
   }
+  wasPressed(input, strict, index, pressed) {
+    if (index >= this.buffer.size)
+      return false;
+    const inputFrame = this.buffer.at(index);
+    for (const event of inputFrame) {
+      if (pressed && event.pressed || !pressed && !event.pressed) {
+        if (input <= 10 && strict)
+          return input === (event.inputBit & 15);
+        return event.inputBit & input;
+      }
+    }
+    return false;
+  }
+  wasPressedBuffer(input, strict, pressed, searchLen = 4) {
+    let found = false;
+    for (let i = 0;i < searchLen; i++) {
+      found = this.wasPressed(input, strict, i, pressed);
+      if (found)
+        return true;
+    }
+    return found;
+  }
+  wasReleased(input, strict = true, index = 0) {
+    return this.wasPressed(input, strict, index, false);
+  }
+  isPressed(input, strict = true) {
+    if (input < 16 && strict)
+      return input === (this.currentState & 15);
+    return this.currentState & input;
+  }
 }
-var readHardwareLayer = (keyboardState) => {
+var pollKeyboardState = (keyboardState) => {
   let input = InputEnum.NOINPUT;
   let inputAxisX = 0;
   let inputAxisY = 0;
-  if (keyboardState["r"]) {
+  if (keyboardState["r"])
     inputAxisX++;
-  }
-  if (keyboardState["w"]) {
+  if (keyboardState["w"])
     inputAxisX--;
-  }
-  if (keyboardState[" "]) {
+  if (keyboardState[" "])
     inputAxisY++;
-  }
-  if (keyboardState["e"]) {
+  if (keyboardState["e"])
     inputAxisY--;
-  }
-  if (keyboardState["u"]) {
+  if (keyboardState["u"])
     input |= InputEnum.LP;
-  }
-  if (keyboardState["i"]) {
+  if (keyboardState["i"])
     input |= InputEnum.LK;
-  }
-  if (keyboardState["o"]) {
+  if (keyboardState["o"])
     input |= InputEnum.MP;
-  }
-  if (keyboardState["p"]) {
+  if (keyboardState["p"])
     input |= InputEnum.MK;
-  }
   if (inputAxisX == 1)
     input |= InputEnum.RIGHT;
   if (inputAxisX == -1)
@@ -163,8 +223,11 @@ var step = (timeStamp) => {
   secondsPassed = (timeStamp - oldTimeStamp) / 1000;
   oldTimeStamp = timeStamp;
   fps = Math.round(1 / secondsPassed);
-  const input = readHardwareLayer(keyboardState);
+  const input = pollKeyboardState(keyboardState);
   controller.update(input);
+  if (controller.wasPressedBuffer(InputEnum.LP, false, true, 2)) {
+    console.log("yahtzee");
+  }
   draw();
   window.requestAnimationFrame(step);
 };
