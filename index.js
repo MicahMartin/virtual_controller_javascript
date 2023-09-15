@@ -4,10 +4,13 @@ import ReactDOM from 'react-dom/client';
 import App from './components/App.jsx';
 
 const ControllerWrapper = () => {
+  let oldTimeStamp;
+  let secondsPassed;
   const keyboardState = {};
   const virtualController = new VirtualController();
 
   const [controller, setController] = useState(0);
+  const [fps, setFps] = useState(0);
 
   useEffect(() => {
     window.addEventListener('keydown', (event) => {
@@ -20,12 +23,17 @@ const ControllerWrapper = () => {
       keyboardState[event.key] = false;
     });
 
-    const step = () => {
+    const step = (timeStamp) => {
       const input = pollKeyboardState(keyboardState);
 
       virtualController.update(input);
       setController(() => virtualController.currentState);
 
+      secondsPassed = (timeStamp - oldTimeStamp) / 1000;
+      oldTimeStamp = timeStamp;
+      newFps = Math.round(1 / secondsPassed);
+
+      setFps(fps); // Update FPS state if needed
       window.requestAnimationFrame(step);
     };
 
@@ -36,7 +44,7 @@ const ControllerWrapper = () => {
 
   return (
     <div>
-      <App controller={controller} />
+      <App fps={fps} controller={controller} />
     </div>
   );
 };

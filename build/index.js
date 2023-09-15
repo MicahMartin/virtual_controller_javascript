@@ -23682,58 +23682,33 @@ var client = __toESM(require_client(), 1);
 // components/App.jsx
 var import_react = __toESM(require_react(), 1);
 var jsx_dev_runtime = __toESM(require_jsx_dev_runtime(), 1);
-var App = ({ controller, keyboardState, fps }) => {
+var App2 = ({ controller, keyboardState, fps }) => {
   const [count, setCount] = import_react.useState(0);
   return jsx_dev_runtime.jsxDEV(jsx_dev_runtime.Fragment, {
-    children: [
-      jsx_dev_runtime.jsxDEV("div", {
+    children: jsx_dev_runtime.jsxDEV("div", {
+      className: "card",
+      children: jsx_dev_runtime.jsxDEV("p", {
         children: [
-          jsx_dev_runtime.jsxDEV("a", {
-            href: "https://vitejs.dev",
-            target: "_blank"
-          }, undefined, false, undefined, this),
-          jsx_dev_runtime.jsxDEV("a", {
-            href: "https://react.dev",
-            target: "_blank"
-          }, undefined, false, undefined, this)
+          "controller state is controller ",
+          controller,
+          " fps ",
+          fps
         ]
-      }, undefined, true, undefined, this),
-      jsx_dev_runtime.jsxDEV("h1", {
-        children: "Vite + React"
-      }, undefined, false, undefined, this),
-      jsx_dev_runtime.jsxDEV("div", {
-        className: "card",
-        children: [
-          jsx_dev_runtime.jsxDEV("button", {
-            onClick: () => setCount((count2) => count2 + 1),
-            children: [
-              "count is ",
-              count
-            ]
-          }, undefined, true, undefined, this),
-          jsx_dev_runtime.jsxDEV("p", {
-            children: [
-              "controller state is controller ",
-              controller
-            ]
-          }, undefined, true, undefined, this)
-        ]
-      }, undefined, true, undefined, this),
-      jsx_dev_runtime.jsxDEV("p", {
-        className: "read-the-docs",
-        children: "Click on the Vite and React logos to learn more"
-      }, undefined, false, undefined, this)
-    ]
-  }, undefined, true, undefined, this);
+      }, undefined, true, undefined, this)
+    }, undefined, false, undefined, this)
+  }, undefined, false, undefined, this);
 };
-var App_default = App;
+var App_default = App2;
 
 // index.js
 var jsx_dev_runtime2 = __toESM(require_jsx_dev_runtime(), 1);
 var ControllerWrapper = () => {
+  let oldTimeStamp;
+  let secondsPassed;
   const keyboardState = {};
   const virtualController = new VirtualController;
   const [controller, setController] = import_react2.useState(0);
+  const [fps, setFps] = import_react2.useState(0);
   import_react2.useEffect(() => {
     window.addEventListener("keydown", (event) => {
       if (event.key === " ")
@@ -23745,10 +23720,14 @@ var ControllerWrapper = () => {
         event.preventDefault();
       keyboardState[event.key] = false;
     });
-    const step = () => {
+    const step = (timeStamp) => {
       const input = pollKeyboardState(keyboardState);
       virtualController.update(input);
       setController(() => virtualController.currentState);
+      secondsPassed = (timeStamp - oldTimeStamp) / 1000;
+      oldTimeStamp = timeStamp;
+      newFps = Math.round(1 / secondsPassed);
+      setFps(fps);
       window.requestAnimationFrame(step);
     };
     const init = () => window.requestAnimationFrame(step);
@@ -23756,6 +23735,7 @@ var ControllerWrapper = () => {
   }, []);
   return jsx_dev_runtime2.jsxDEV("div", {
     children: jsx_dev_runtime2.jsxDEV(App_default, {
+      fps,
       controller
     }, undefined, false, undefined, this)
   }, undefined, false, undefined, this);
