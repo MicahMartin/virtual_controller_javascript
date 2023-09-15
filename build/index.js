@@ -23683,7 +23683,6 @@ var client = __toESM(require_client(), 1);
 var import_react = __toESM(require_react(), 1);
 var jsx_dev_runtime = __toESM(require_jsx_dev_runtime(), 1);
 var App2 = ({ controller, keyboardState, fps }) => {
-  const [count, setCount] = import_react.useState(0);
   return jsx_dev_runtime.jsxDEV(jsx_dev_runtime.Fragment, {
     children: jsx_dev_runtime.jsxDEV("div", {
       className: "card",
@@ -23727,7 +23726,7 @@ var ControllerWrapper = () => {
       secondsPassed = (timeStamp - oldTimeStamp) / 1000;
       oldTimeStamp = timeStamp;
       newFps = Math.round(1 / secondsPassed);
-      setFps(fps);
+      setFps(newFps);
       window.requestAnimationFrame(step);
     };
     const init = () => window.requestAnimationFrame(step);

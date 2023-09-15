@@ -33,7 +33,7 @@ const ControllerWrapper = () => {
       oldTimeStamp = timeStamp;
       newFps = Math.round(1 / secondsPassed);
 
-      setFps(fps); // Update FPS state if needed
+      setFps(newFps); // Update FPS state if needed
       window.requestAnimationFrame(step);
     };
 
